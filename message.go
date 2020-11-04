@@ -129,30 +129,6 @@ var (
 // OptionID identifies an option in a message.
 type OptionID uint8
 
-/*
-   +-----+----+---+---+---+----------------+--------+--------+---------+
-   | No. | C  | U | N | R | Name           | Format | Length | Default |
-   +-----+----+---+---+---+----------------+--------+--------+---------+
-   |   1 | x  |   |   | x | If-Match       | opaque | 0-8    | (none)  |
-   |   3 | x  | x | - |   | Uri-Host       | string | 1-255  | (see    |
-   |     |    |   |   |   |                |        |        | below)  |
-   |   4 |    |   |   | x | ETag           | opaque | 1-8    | (none)  |
-   |   5 | x  |   |   |   | If-None-Match  | empty  | 0      | (none)  |
-   |   7 | x  | x | - |   | Uri-Port       | uint   | 0-2    | (see    |
-   |     |    |   |   |   |                |        |        | below)  |
-   |   8 |    |   |   | x | Location-Path  | string | 0-255  | (none)  |
-   |  11 | x  | x | - | x | Uri-Path       | string | 0-255  | (none)  |
-   |  12 |    |   |   |   | Content-Format | uint   | 0-2    | (none)  |
-   |  14 |    | x | - |   | Max-Age        | uint   | 0-4    | 60      |
-   |  15 | x  | x | - | x | Uri-Query      | string | 0-255  | (none)  |
-   |  17 | x  |   |   |   | Accept         | uint   | 0-2    | (none)  |
-   |  20 |    |   |   | x | Location-Query | string | 0-255  | (none)  |
-   |  35 | x  | x | - |   | Proxy-Uri      | string | 1-1034 | (none)  |
-   |  39 | x  | x | - |   | Proxy-Scheme   | string | 1-255  | (none)  |
-   |  60 |    |   | x |   | Size1          | uint   | 0-4    | (none)  |
-   +-----+----+---+---+---+----------------+--------+--------+---------+
-*/
-
 // Option IDs.
 const (
 	IfMatch       OptionID = 1
@@ -441,20 +417,6 @@ func (m *Message) MarshalBinary() ([]byte, error) {
 	tmpbuf := []byte{0, 0}
 	binary.BigEndian.PutUint16(tmpbuf, m.MessageID)
 
-	/*
-	     0                   1                   2                   3
-	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |Ver| T |  TKL  |      Code     |          Message ID           |
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |   Token (if any, TKL bytes) ...
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |   Options (if any) ...
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |1 1 1 1 1 1 1 1|    Payload (if any) ...
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	*/
-
 	buf := bytes.Buffer{}
 	buf.Write([]byte{
 		(1 << 6) | (uint8(m.Type) << 4) | uint8(0xf&len(m.Token)),
@@ -462,35 +424,6 @@ func (m *Message) MarshalBinary() ([]byte, error) {
 		tmpbuf[0], tmpbuf[1],
 	})
 	buf.Write(m.Token)
-
-	/*
-	     0   1   2   3   4   5   6   7
-	   +---------------+---------------+
-	   |               |               |
-	   |  Option Delta | Option Length |   1 byte
-	   |               |               |
-	   +---------------+---------------+
-	   \                               \
-	   /         Option Delta          /   0-2 bytes
-	   \          (extended)           \
-	   +-------------------------------+
-	   \                               \
-	   /         Option Length         /   0-2 bytes
-	   \          (extended)           \
-	   +-------------------------------+
-	   \                               \
-	   /                               /
-	   \                               \
-	   /         Option Value          /   0 or more bytes
-	   \                               \
-	   /                               /
-	   \                               \
-	   +-------------------------------+
-
-	   See parseExtOption(), extendOption()
-	   and writeOptionHeader() below for implementation details
-	*/
-
 	extendOpt := func(opt int) (int, int) {
 		ext := 0
 		if opt >= extoptByteAddend {
