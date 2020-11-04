@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/birgizz/client"
 	"log"
-	"github.com/birgizz/COAP-client"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 		Payload:   []byte("hello, world!"),
 	}
 
-	path := "/.well-known/core"
+	path := "/test"
 	req.SetOption(coap.ETag, "weetag")
 	req.SetOption(coap.MaxAge, 3)
 	req.SetPathString(path)
